@@ -1,104 +1,84 @@
-// 랜덤 닉네임 생성
-let nickname = localStorage.getItem("nickname");
-if (!nickname) {
-  nickname = "Player_" + Math.floor(Math.random() * 10000);
-  localStorage.setItem("nickname", nickname);
-}
-document.getElementById("nickname").textContent = nickname;
+import * as THREE from "three";
+import { createClient } from "@supabase/supabase-js";
 
-// THREE.js 기본 세팅
+// 🧩 Supabase 설정
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+const SUPABASE_KEY = "YOUR_PUBLIC_ANON_KEY";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 🎮 기본 설정
+const canvas = document.getElementById("gameCanvas");
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById("game-container").appendChild(renderer.domElement);
+renderer.setPixelRatio(window.devicePixelRatio);
 
-// 바닥, 조명
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 100),
-  new THREE.MeshStandardMaterial({ color: 0x333333 })
+// 🌍 간단한 바닥
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(50, 50),
+  new THREE.MeshStandardMaterial({ color: 0x222222 })
 );
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
 
-const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+// 💡 조명
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
 scene.add(light);
 
-// 플레이어 시작 위치
+// 👤 플레이어
+const player = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 2, 1),
+  new THREE.MeshStandardMaterial({ color: 0x4f46e5 })
+);
+player.position.y = 1;
+scene.add(player);
 camera.position.set(0, 2, 5);
 
-// 총알 저장
-const bullets = [];
-
-// 조이스틱 이동 제어
-let joystick = document.getElementById("joystick");
-let stick = document.getElementById("stick");
-let moveX = 0, moveY = 0;
-let dragging = false;
-let startX, startY;
-
-joystick.addEventListener("touchstart", (e) => {
-  dragging = true;
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
-});
-
-joystick.addEventListener("touchmove", (e) => {
-  if (!dragging) return;
-  const dx = e.touches[0].clientX - startX;
-  const dy = e.touches[0].clientY - startY;
-  const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
-  const angle = Math.atan2(dy, dx);
-  stick.style.left = 30 + dist * Math.cos(angle) + "px";
-  stick.style.top = 30 + dist * Math.sin(angle) + "px";
-  moveX = Math.cos(angle) * (dist / 40);
-  moveY = Math.sin(angle) * (dist / 40);
-});
-
-joystick.addEventListener("touchend", () => {
-  dragging = false;
-  stick.style.left = "30px";
-  stick.style.top = "30px";
-  moveX = moveY = 0;
-});
-
-// 발사 버튼
-document.getElementById("shootBtn").addEventListener("click", shoot);
-
-function shoot() {
-  const geometry = new THREE.SphereGeometry(0.1, 8, 8);
-  const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  const bullet = new THREE.Mesh(geometry, material);
-  bullet.position.copy(camera.position);
-  bullet.velocity = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).multiplyScalar(0.5);
-  bullets.push(bullet);
-  scene.add(bullet);
-}
-
-// 애니메이션 루프
-function animate() {
-  requestAnimationFrame(animate);
-
-  // 이동
-  camera.position.x += moveX * 0.1;
-  camera.position.z += moveY * 0.1;
-
-  // 총알 이동
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    const b = bullets[i];
-    b.position.add(b.velocity);
-    if (b.position.length() > 100) {
-      scene.remove(b);
-      bullets.splice(i, 1);
-    }
-  }
-
-  renderer.render(scene, camera);
-}
-animate();
-
+// 🔄 리사이즈 대응
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// 🔫 키보드 이동
+const keys = {};
+document.addEventListener("keydown", (e) => (keys[e.key] = true));
+document.addEventListener("keyup", (e) => (keys[e.key] = false));
+
+// 👥 실시간 위치 업데이트 (익명 플레이어)
+const playerId = Math.random().toString(36).substring(2, 10);
+let players = {};
+
+async function updatePosition(x, z) {
+  await supabase.from("players").upsert({ id: playerId, x, z });
+}
+
+// 실시간 구독
+supabase
+  .channel("realtime:players")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "players" },
+    (payload) => {
+      players[payload.new.id] = payload.new;
+    }
+  )
+  .subscribe();
+
+// 🧭 루프
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (keys["w"]) player.position.z -= 0.1;
+  if (keys["s"]) player.position.z += 0.1;
+  if (keys["a"]) player.position.x -= 0.1;
+  if (keys["d"]) player.position.x += 0.1;
+
+  updatePosition(player.position.x, player.position.z);
+  camera.lookAt(player.position);
+  renderer.render(scene, camera);
+}
+animate();
