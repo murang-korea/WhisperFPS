@@ -1,0 +1,18 @@
+{
+  "name": "whisper-fps",
+  "version": "1.0.0",
+  "description": "익명 실시간 FPS 게임 (Supabase Realtime + Three.js)",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx live-server --port=5173"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1",
+    "live-server": "^1.2.2"
+  }
+}
