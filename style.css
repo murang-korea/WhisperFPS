@@ -1,74 +1,31 @@
-html, body {
+body {
   margin: 0;
-  padding: 0;
-  overflow: hidden;
-  height: 100%;
-  background: #000;
+  background: #0b0b0b;
+  color: white;
   font-family: "Pretendard", sans-serif;
+  overflow: hidden;
 }
 
-#game-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-#hud {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  color: white;
-  font-size: 1rem;
-  z-index: 10;
-}
-
-#score {
-  margin-top: 5px;
-  font-size: 0.9rem;
-  color: #ccc;
-}
-
-#joystick {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  width: 100px;
-  height: 100px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-  touch-action: none;
-}
-
-#stick {
-  width: 40px;
-  height: 40px;
-  background: rgba(255,255,255,0.4);
-  border-radius: 50%;
+#ui {
   position: absolute;
-  top: 30px;
-  left: 30px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
 }
 
-#shootBtn {
-  position: fixed;
-  bottom: 40px;
-  right: 30px;
-  width: 70px;
-  height: 70px;
-  font-size: 1.8rem;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+#startBtn {
+  background: #4f46e5;
   color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  border-radius: 10px;
   cursor: pointer;
-  z-index: 10;
-  touch-action: manipulation;
 }
 
-@media (max-width: 600px) {
-  #joystick { width: 80px; height: 80px; }
-  #stick { width: 30px; height: 30px; top: 25px; left: 25px; }
-  #shootBtn { width: 60px; height: 60px; font-size: 1.5rem; }
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
 }
